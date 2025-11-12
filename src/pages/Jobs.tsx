@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { JobCard } from "@/components/JobCard";
 import { CategoryFilter } from "@/components/CategoryFilter";
+import { JobsMap } from "@/components/JobsMap";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, MapPin } from "lucide-react";
@@ -113,6 +114,11 @@ const Jobs = () => {
           selectedCategory={selectedCategory}
           onCategoryChange={setSelectedCategory}
         />
+      </div>
+
+      {/* Map Section */}
+      <div className="container mx-auto px-4 pb-4">
+        <JobsMap jobs={filteredJobs} />
       </div>
 
       {/* Jobs List */}
