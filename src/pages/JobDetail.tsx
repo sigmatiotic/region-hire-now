@@ -3,35 +3,95 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { MapPin, Clock, IndianRupee, User, ChevronLeft } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const JobDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { toast } = useToast();
+  const [job, setJob] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data - in real app, fetch by ID
-  const job = {
-    id: id,
-    title: "Help with Diwali Decoration",
-    description: "Need someone to help decorate my home for Diwali. Must be creative and experienced with traditional decorations. The work includes hanging lights, making rangoli patterns, and arranging diyas. Should have knowledge of traditional decoration styles and modern aesthetics.",
-    category: "Events",
-    payment: 800,
-    location: "Sector 15, Noida",
-    postedAt: "2 hours ago",
-    distance: "1.2 km",
-    poster: {
-      name: "Priya Sharma",
-      rating: 4.5,
-      jobsPosted: 12,
-    },
-    requirements: [
-      "Experience with traditional decorations",
-      "Own transportation preferred",
-      "Must bring basic decoration tools",
-      "Should be available on the specified date",
-    ],
-    dateNeeded: "Tomorrow, 10:00 AM",
-    duration: "4-5 hours",
+  useEffect(() => {
+    if (id) {
+      fetchJob();
+    } else {
+      setLoading(false);
+    }
+  }, [id]);
+
+  const fetchJob = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("jobs")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error) {
+        console.error("Error fetching job:", error);
+        // Fallback to mock data
+        setJob({
+          id: id,
+          title: "Help with Diwali Decoration",
+          description: "Need someone to help decorate my home for Diwali. Must be creative and experienced with traditional decorations. The work includes hanging lights, making rangoli patterns, and arranging diyas. Should have knowledge of traditional decoration styles and modern aesthetics.",
+          category: "Events",
+          payment: 800,
+          location: "Sector 15, Noida",
+          postedAt: "2 hours ago",
+          distance: "1.2 km",
+          poster: {
+            name: "Priya Sharma",
+            rating: 4.5,
+            jobsPosted: 12,
+          },
+          requirements: [
+            "Experience with traditional decorations",
+            "Own transportation preferred",
+            "Must bring basic decoration tools",
+            "Should be available on the specified date",
+          ],
+          dateNeeded: "Tomorrow, 10:00 AM",
+          duration: "4-5 hours",
+        });
+      } else {
+        setJob({
+          ...data,
+          postedAt: new Date(data.created_at).toLocaleDateString(),
+          distance: "N/A",
+          poster: {
+            name: "User",
+            rating: 0,
+            jobsPosted: 0,
+          },
+          requirements: [],
+          dateNeeded: data.date ? new Date(data.date).toLocaleDateString() : "TBD",
+        });
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!job) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Job not found</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -93,17 +153,19 @@ const JobDetail = () => {
         </Card>
 
         {/* Requirements */}
-        <Card className="p-5 mb-4">
-          <h3 className="font-semibold text-lg mb-3 text-foreground">Requirements</h3>
-          <ul className="space-y-2">
-            {job.requirements.map((req, index) => (
-              <li key={index} className="flex items-start gap-2 text-muted-foreground">
-                <span className="text-accent mt-1">•</span>
-                <span>{req}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
+        {job.requirements && job.requirements.length > 0 && (
+          <Card className="p-5 mb-4">
+            <h3 className="font-semibold text-lg mb-3 text-foreground">Requirements</h3>
+            <ul className="space-y-2">
+              {job.requirements.map((req: string, index: number) => (
+                <li key={index} className="flex items-start gap-2 text-muted-foreground">
+                  <span className="text-accent mt-1">•</span>
+                  <span>{req}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
 
         {/* Poster Info */}
         <Card className="p-5 mb-4">

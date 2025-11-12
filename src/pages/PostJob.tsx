@@ -7,10 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const PostJob = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     category: "",
@@ -21,7 +23,7 @@ const PostJob = () => {
     duration: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validation
@@ -34,13 +36,45 @@ const PostJob = () => {
       return;
     }
 
-    // In real app, submit to backend
-    toast({
-      title: "Job Posted Successfully!",
-      description: "Your job is now visible to workers nearby",
-    });
-    
-    setTimeout(() => navigate("/jobs"), 1500);
+    setLoading(true);
+
+    try {
+      // For now, create a temporary user ID until authentication is fully implemented
+      const tempUserId = "00000000-0000-0000-0000-000000000000";
+      
+      const { error } = await supabase.from("jobs").insert({
+        title: formData.title,
+        category: formData.category,
+        description: formData.description,
+        location: formData.location,
+        payment: parseFloat(formData.payment),
+        date: formData.date || null,
+        duration: formData.duration || null,
+        poster_id: tempUserId,
+        status: "open",
+      });
+
+      if (error) {
+        console.error("Database error:", error);
+        throw error;
+      }
+
+      toast({
+        title: "Job Posted Successfully!",
+        description: "Your job is now visible to workers nearby",
+      });
+      
+      setTimeout(() => navigate("/jobs"), 1500);
+    } catch (error: any) {
+      console.error("Error posting job:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to post job. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -153,9 +187,10 @@ const PostJob = () => {
             <div className="container mx-auto max-w-2xl">
               <Button 
                 type="submit" 
+                disabled={loading}
                 className="w-full bg-gradient-to-r from-primary to-primary/90 text-lg py-6"
               >
-                Post Job
+                {loading ? "Posting..." : "Post Job"}
               </Button>
             </div>
           </div>

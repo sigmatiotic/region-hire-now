@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { JobCard } from "@/components/JobCard";
 import { CategoryFilter } from "@/components/CategoryFilter";
 import { JobsMap } from "@/components/JobsMap";
@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 // Mock data
 const mockJobs = [
@@ -63,10 +65,40 @@ const mockJobs = [
 
 const Jobs = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [jobs, setJobs] = useState<any[]>(mockJobs); // Initialize with mock data
+  const [loading, setLoading] = useState(false);
 
-  const filteredJobs = mockJobs.filter((job) => {
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
+  const fetchJobs = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("jobs")
+        .select("*")
+        .eq("status", "open")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching jobs:", error);
+        // Continue with mock data if database fetch fails
+      } else if (data && data.length > 0) {
+        setJobs(data);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      // Continue with mock data if any error occurs
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredJobs = jobs.filter((job) => {
     const matchesCategory = selectedCategory === "all" || job.category === selectedCategory;
     const matchesSearch = job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          job.description.toLowerCase().includes(searchQuery.toLowerCase());
